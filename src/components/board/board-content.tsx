@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
     DragDropContext,
     Droppable,
@@ -8,11 +8,14 @@ import {
     type DropResult,
 } from "@hello-pangea/dnd";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { CreateTaskForm } from "./create-task-form";
 import { CreateListForm } from "./create-list-form";
 import { TaskDetailDialog } from "./task-detail-dialog";
 import { reorderTasks } from "@/actions/task";
+import { deleteList } from "@/actions/list";
 import { useSocket } from "@/components/providers/socket-provider";
+import { Trash2 } from "lucide-react";
 
 interface Task {
     id: string;
@@ -46,6 +49,136 @@ export function BoardContent({ boardId, initialLists, members, ownerId, ownerNam
     const [lists, setLists] = useState<List[]>(initialLists);
     const { socket } = useSocket();
 
+    // Keep a ref to always have the latest socket (avoids stale closures in callbacks)
+    const socketRef = useRef(socket);
+    useEffect(() => {
+        socketRef.current = socket;
+    }, [socket]);
+
+    // Listen to socket events for real-time updates
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleTaskCreated = (data: { listId: string; task: Task }) => {
+            setLists((prevLists) =>
+                prevLists.map((list) =>
+                    list.id === data.listId
+                        ? {
+                              ...list,
+                              tasks: [...list.tasks, data.task].sort((a, b) => a.order - b.order),
+                          }
+                        : list
+                )
+            );
+        };
+
+        const handleTaskUpdated = (data: { task: Task }) => {
+            setLists((prevLists) =>
+                prevLists.map((list) =>
+                    list.tasks.some((t) => t.id === data.task.id)
+                        ? {
+                              ...list,
+                              tasks: list.tasks.map((t) =>
+                                  t.id === data.task.id ? data.task : t
+                              ),
+                          }
+                        : list
+                )
+            );
+        };
+
+        const handleTaskDeleted = (data: { taskId: string; listId: string }) => {
+            setLists((prevLists) =>
+                prevLists.map((list) =>
+                    list.id === data.listId
+                        ? {
+                              ...list,
+                              tasks: list.tasks.filter((t) => t.id !== data.taskId),
+                          }
+                        : list
+                )
+            );
+        };
+
+        const handleTaskMoved = (data: { updates: { id: string; listId: string; order: number }[] }) => {
+            setLists((prevLists) => {
+                // Create a map of updates by task id for quick lookup
+                const updatesMap = new Map(
+                    data.updates.map((u) => [u.id, { listId: u.listId, order: u.order }])
+                );
+
+                // Collect all tasks that need to be updated
+                const tasksToUpdate: Map<string, Task> = new Map();
+                prevLists.forEach((list) => {
+                    list.tasks.forEach((task) => {
+                        if (updatesMap.has(task.id)) {
+                            const update = updatesMap.get(task.id)!;
+                            tasksToUpdate.set(task.id, {
+                                ...task,
+                                listId: update.listId,
+                                order: update.order,
+                            });
+                        }
+                    });
+                });
+
+                // Rebuild lists with updated tasks
+                const newLists = prevLists.map((list) => {
+                    // Get tasks that belong to this list after updates
+                    const tasksInList: Task[] = [];
+                    
+                    // Add tasks that are already in this list and weren't moved
+                    list.tasks.forEach((task) => {
+                        if (!updatesMap.has(task.id)) {
+                            tasksInList.push(task);
+                        }
+                    });
+
+                    // Add tasks that were moved to this list
+                    tasksToUpdate.forEach((task) => {
+                        if (task.listId === list.id) {
+                            tasksInList.push(task);
+                        }
+                    });
+
+                    // Sort by order
+                    tasksInList.sort((a, b) => a.order - b.order);
+
+                    return {
+                        ...list,
+                        tasks: tasksInList,
+                    };
+                });
+
+                return newLists;
+            });
+        };
+
+        const handleListCreated = (data: { list: List }) => {
+            setLists((prevLists) => [...prevLists, data.list]);
+        };
+
+        const handleListDeleted = (data: { listId: string }) => {
+            setLists((prevLists) => prevLists.filter((list) => list.id !== data.listId));
+        };
+
+        socket.on("task-created", handleTaskCreated);
+        socket.on("task-updated", handleTaskUpdated);
+        socket.on("task-deleted", handleTaskDeleted);
+        socket.on("task-moved", handleTaskMoved);
+        socket.on("list-created", handleListCreated);
+        socket.on("list-deleted", handleListDeleted);
+
+        return () => {
+            socket.off("task-created", handleTaskCreated);
+            socket.off("task-updated", handleTaskUpdated);
+            socket.off("task-deleted", handleTaskDeleted);
+            socket.off("task-moved", handleTaskMoved);
+            socket.off("list-created", handleListCreated);
+            socket.off("list-deleted", handleListDeleted);
+        };
+    }, [socket]);
+
     const allUsers = [
         { id: ownerId, name: ownerName || "Owner" },
         ...members.map((m) => ({ id: m.user.id, name: m.user.name || m.user.email })),
@@ -56,12 +189,17 @@ export function BoardContent({ boardId, initialLists, members, ownerId, ownerNam
         return allUsers.find((u) => u.id === assigneeId)?.name || null;
     };
 
-    // Notify other clients via socket
+    // Notify other clients via socket — uses ref to always get the latest socket
     const notifyUpdate = useCallback(() => {
-        if (socket) {
-            socket.emit("notify-board-update", boardId);
+        const s = socketRef.current;
+        console.log("[BoardContent] notifyUpdate called, socket:", !!s, "connected:", s?.connected);
+        if (s) {
+            s.emit("notify-board-update", boardId);
+            console.log("[BoardContent] Emitted notify-board-update for board:", boardId);
+        } else {
+            console.warn("[BoardContent] Socket is null, cannot notify!");
         }
-    }, [socket, boardId]);
+    }, [boardId]);
 
     const onDragEnd = useCallback(
         async (result: DropResult) => {
@@ -111,9 +249,9 @@ export function BoardContent({ boardId, initialLists, members, ownerId, ownerNam
 
             setLists(newLists);
             await reorderTasks(boardId, updates);
-            notifyUpdate();
+            // Socket event will be emitted by the server action, no need to notify manually
         },
-        [lists, boardId, notifyUpdate]
+        [lists, boardId]
     );
 
     return (
@@ -125,10 +263,25 @@ export function BoardContent({ boardId, initialLists, members, ownerId, ownerNam
                         className="w-80 shrink-0 bg-secondary/50 rounded-md p-2"
                     >
                         <div className="px-2 py-3 font-semibold text-sm flex justify-between items-center">
-                            {list.title}
-                            <span className="text-xs font-normal text-muted-foreground">
-                                {list.tasks.length}
-                            </span>
+                            <span>{list.title}</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-normal text-muted-foreground">
+                                    {list.tasks.length}
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                    onClick={async () => {
+                                        if (confirm(`Delete list "${list.title}"? This will also delete all tasks in this list.`)) {
+                                            await deleteList(list.id, boardId);
+                                            notifyUpdate();
+                                        }
+                                    }}
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                            </div>
                         </div>
                         <Droppable droppableId={list.id}>
                             {(provided, snapshot) => (

@@ -47,10 +47,39 @@ app.prepare().then(() => {
             console.log(`Socket ${socket.id} joined board:${boardId}`);
         });
 
-        // Client tells server about a board mutation → relay to OTHER clients in the room
+        // Client tells server about a board mutation → relay to ALL clients in the room (including sender)
         socket.on("notify-board-update", (boardId: string) => {
             console.log(`Board update notification for board:${boardId} from ${socket.id}`);
-            socket.to(`board:${boardId}`).emit("board-updated");
+            io.to(`board:${boardId}`).emit("board-updated");
+        });
+
+        // Handle specific update events with data
+        socket.on("task-created", (data: { boardId: string; task: unknown; listId: string }) => {
+            socket.to(`board:${data.boardId}`).emit("task-created", data);
+        });
+
+        socket.on("task-updated", (data: { boardId: string; task: unknown }) => {
+            socket.to(`board:${data.boardId}`).emit("task-updated", data);
+        });
+
+        socket.on("task-deleted", (data: { boardId: string; taskId: string; listId: string }) => {
+            socket.to(`board:${data.boardId}`).emit("task-deleted", data);
+        });
+
+        socket.on("task-moved", (data: { boardId: string; updates: unknown[] }) => {
+            socket.to(`board:${data.boardId}`).emit("task-moved", data);
+        });
+
+        socket.on("list-created", (data: { boardId: string; list: unknown }) => {
+            socket.to(`board:${data.boardId}`).emit("list-created", data);
+        });
+
+        socket.on("list-deleted", (data: { boardId: string; listId: string }) => {
+            socket.to(`board:${data.boardId}`).emit("list-deleted", data);
+        });
+
+        socket.on("activity-updated", (data: { boardId: string }) => {
+            socket.to(`board:${data.boardId}`).emit("activity-updated", data);
         });
 
         socket.on("disconnect", () => {

@@ -124,3 +124,31 @@ export async function joinBoard(boardId: string) {
     revalidatePath("/dashboard");
     return { success: true };
 }
+
+export async function deleteBoard(boardId: string) {
+    const user = await getCurrentUser();
+    if (!user) {
+        return { error: "Unauthorized" };
+    }
+
+    const board = await db.board.findUnique({
+        where: { id: boardId },
+    });
+
+    if (!board) {
+        return { error: "Board not found" };
+    }
+
+    // Only the owner can delete the board
+    if (board.ownerId !== user.id) {
+        return { error: "Only the board owner can delete the board" };
+    }
+
+    // Delete the board (cascade will delete lists, tasks, activities, and members)
+    await db.board.delete({
+        where: { id: boardId },
+    });
+
+    revalidatePath("/dashboard");
+    return { success: true };
+}

@@ -5,6 +5,7 @@ import { BoardContent } from "@/components/board/board-content";
 import { BoardRealtime } from "@/components/board/board-realtime";
 import { ShareBoardDialog } from "@/components/board/share-board-dialog";
 import { ActivityLog } from "@/components/board/activity-log";
+import { DeleteBoardButton } from "@/components/board/delete-board-button";
 
 export default async function BoardPage({ params }: { params: Promise<{ boardId: string }> }) {
     const user = await getCurrentUser();
@@ -37,6 +38,9 @@ export default async function BoardPage({ params }: { params: Promise<{ boardId:
                             members={board.members}
                             ownerName={board.owner.name}
                         />
+                        {board.ownerId === user.id && (
+                            <DeleteBoardButton boardId={board.id} boardTitle={board.title} />
+                        )}
                     </div>
                 </div>
             </div>
