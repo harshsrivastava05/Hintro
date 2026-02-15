@@ -140,5 +140,58 @@ To test real-time features locally:
 4. User B clicks **"Join a Board"** on their dashboard and pastes the ID.
 5. Both users can now drag tasks, edit content, and see changes instantly!
 
-## 📜 License
-This project is open-source and available under the MIT License.
+
+## 🔌 API Documentation
+
+Since Hintro is built on Next.js Server Actions, the "API" primarily consists of asynchronous functions called directly from the client components. These actions handle database mutations and trigger real-time updates.
+
+### Key Server Actions (`src/actions`)
+
+| Action | Description | Triggers Socket Event |
+|--------|-------------|-----------------------|
+| `createBoard(title)` | Creates a new board | - |
+| `updateBoard(id, title)` | Renames a board | `board-updated` |
+| `deleteBoard(id)` | Deletes a board and its contents | - |
+| `createList(boardId, title)` | Adds a new list to a board | `list-created` |
+| `deleteList(id, boardId)` | Removes a list and its tasks | `list-deleted` |
+| `createTask(listId, content, boardId)` | Adds a new task | `task-created` |
+| `updateTask(taskId, listId, order, boardId)` | Moves a task (within/across lists) | `task-moved` |
+| `assignTask(taskId, userId, boardId)` | Assigns a user to a task | `task-updated` |
+
+### Real-time Events (Socket.io)
+
+Events are emitted to rooms namespaced by board ID (`board:{id}`).
+
+| Event Name | Payload | usage |
+|------------|---------|-------|
+| `join-board` | `boardId` | Client joins a board room |
+| `task-created` | `{ task, listId }` | A new task was added |
+| `task-updated` | `{ task }` | A task's content or assignee changed |
+| `task-moved` | `{ updates: [] }` | One or more tasks were reordered |
+| `list-created` | `{ list }` | A new list was added |
+| `list-deleted` | `{ listId }` | A list was removed |
+| `activity-updated` | `{ boardId }` | New activity log entry generated |
+
+## ⚖️ Assumptions & Trade-offs
+
+### Assumptions
+1.  **Authentication**: The application assumes a secure, cookie-based session is present for all mutations. Middleware protects routes, and server actions verify the user before execution.
+2.  **Socket Connectivity**: Real-time features assume a stable WebSocket connection. While the app functions for the initiator without sockets (due to server actions), other collaborators rely on sockets for updates.
+3.  **Single Region**: The current architecture uses a single persistent server for Socket.io, assuming all users connect to the same instance (no Redis adapter for multi-server scaling yet).
+
+### Trade-offs
+
+#### 1. Custom Server vs. Serverless
+*   **Decision**: We use a custom Node.js server (`server.ts`) instead of standard Next.js routing.
+*   **Trade-off**: This allows us to host the Socket.io server on the same instance/port as the Next.js app, simplifying deployment on VPS/containers.
+*   **Consequence**: We cannot deploy to Vercel/Netlify "zero-config" platforms freely, as they require serverless functions which don't support persistent WebSocket servers.
+
+#### 2. Optimistic UI
+*   **Decision**: The UI updates immediately upon user interaction (e.g., dragging a task), then sends the request to the server.
+*   **Trade-off**: Provides a snappy, native-like feel but risks desynchronization if the server request fails.
+*   **Mitigation**: The app reconciles state when a socket event is received, effectively "correcting" the UI if the server's truth differs.
+
+#### 3. Activity Logging
+*   **Decision**: Activity logs are generated transactionally or immediately after key actions.
+*   **Trade-off**: Slightly increases the latency of write operations (create/move/update) to ensure the audit trail is accurate.
+
