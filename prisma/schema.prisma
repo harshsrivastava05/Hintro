@@ -1,0 +1,83 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  boards       Board[]
+  memberships  BoardMember[]
+  activities   Activity[]
+}
+
+model Board {
+  id        String   @id @default(uuid())
+  title     String
+  ownerId   String
+  owner     User          @relation(fields: [ownerId], references: [id])
+  members   BoardMember[]
+  lists     List[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BoardMember {
+  id       String   @id @default(uuid())
+  userId   String
+  boardId  String
+  role     String   @default("member")
+  user     User     @relation(fields: [userId], references: [id])
+  board    Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+
+  @@unique([userId, boardId])
+}
+
+model List {
+  id        String   @id @default(uuid())
+  title     String
+  boardId   String
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+  order     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([boardId])
+}
+
+model Task {
+  id        String   @id @default(uuid())
+  content   String
+  listId    String
+  list      List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  order     Float
+  assigneeId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  activities Activity[]
+
+  @@index([listId])
+}
+
+model Activity {
+  id        String   @id @default(uuid())
+  action    String
+  taskId    String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+}
