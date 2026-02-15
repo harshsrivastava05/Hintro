@@ -2,6 +2,12 @@
 
 Hintro is a modern, real-time collaborative task management platform built with Next.js 15. It enables teams to organize tasks visually, collaborate in real-time, and track progress efficiently.
 
+> **🧪 Experiment Quickly**
+> Use these pre-registered accounts to test the app:
+> - **User 1:** `test@gmail.com` (Pass: `test12345`)
+> - **User 2:** `test1@gmail.com` (Pass: `test12345`)
+
+
 ## 🚀 Tech Stack
 
 - **Framework:** [Next.js 15](https://nextjs.org/) (App Router, Server Actions)
@@ -141,6 +147,8 @@ src/
 To test real-time features locally:
 1. Open `http://localhost:3000` in two different browsers (or one Incognito window).
 2. Log in as different users.
+
+
 3. User A creates a board and shares the **Board ID** (found in "Share" dialog).
 4. User B clicks **"Join a Board"** on their dashboard and pastes the ID.
 5. Both users can now drag tasks, edit content, and see changes instantly!
