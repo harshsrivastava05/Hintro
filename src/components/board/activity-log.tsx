@@ -30,7 +30,7 @@ export function ActivityLog({ boardId }: ActivityLogProps) {
                     className="gap-1"
                 >
                     <Activity className="h-4 w-4 text-slate-900" />
-                    Activity
+                    <span className="text-black">Activity</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col ">

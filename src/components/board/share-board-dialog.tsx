@@ -32,8 +32,8 @@ export function ShareBoardDialog({ boardId, members, ownerName }: ShareBoardDial
         <Dialog>
             <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
-                    <Share2 className="h-4 w-4 mr-2" />
-                    Share
+                    <Share2 className="h-4 w-4 mr-2 text-black" />
+                    <span className="text-black">Share</span>
                 </Button>
             </DialogTrigger>
             <DialogContent>
@@ -49,7 +49,7 @@ export function ShareBoardDialog({ boardId, members, ownerName }: ShareBoardDial
                         <Input
                             value={boardId}
                             readOnly
-                            className="font-mono text-sm bg-muted"
+                            className="font-mono text-sm bg-muted text-black"
                         />
                         <Button
                             variant="outline"
@@ -60,7 +60,7 @@ export function ShareBoardDialog({ boardId, members, ownerName }: ShareBoardDial
                             {copied ? (
                                 <Check className="h-4 w-4 text-green-500" />
                             ) : (
-                                <Copy className="h-4 w-4" />
+                                <Copy className="h-4 w-4 text-black" />
                             )}
                         </Button>
                     </div>

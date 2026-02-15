@@ -10,6 +10,7 @@ Hintro is a modern, real-time collaborative task management platform built with 
 - **Styling:** [Tailwind CSS](https://tailwindcss.com/) & [Shadcn UI](https://ui.shadcn.com/)
 - **Drag & Drop:** [@hello-pangea/dnd](https://github.com/hello-pangea/dnd)
 - **Authentication:** Custom JWT-based auth (bcryptjs + jsonwebtoken)
+- **Images:** [Unsplash API](https://unsplash.com/developers)
 
 ## ✨ Key Features
 
@@ -28,6 +29,7 @@ Hintro is a modern, real-time collaborative task management platform built with 
 - **Drag-and-Drop:** Intuitive drag-and-drop interface for reordering tasks and lists.
 - **Real-time Sync:** All changes (moves, edits, creations) sync instantly to all connected users via WebSockets.
 - **Board Sharing:** Share your board ID to invite others to collaborate.
+- **Custom Backgrounds:** Personalize boards with beautiful images from Unsplash.
 
 ### 📝 Task Details
 - **Rich Editing:** Update task content and details.
@@ -80,7 +82,7 @@ sequenceDiagram
 
 ```
 src/
-├── actions/      # Next.js Server Actions (Database mutations)
+├── actions/      # Server Actions (auth, board, list, task/...)
 ├── app/          # App Router pages and layouts
 ├── components/   # React components (UI, Board, Providers)
 ├── lib/          # Utilities (Prisma client, Socket helper)
@@ -117,6 +119,9 @@ src/
 
    # App URL (for Socket.io) - Optional, defaults to window.location.origin
    NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+
+   # Unsplash API Key (Required for Board Backgrounds)
+   NEXT_PUBLIC_UNSPLASH_ACCESS_KEY="your-unsplash-access-key"
    ```
 
 4. **Initialize Database:**
