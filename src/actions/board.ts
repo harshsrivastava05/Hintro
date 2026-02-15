@@ -4,16 +4,33 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "./auth";
 import { revalidatePath } from "next/cache";
 
-export async function createBoard(title: string) {
+export async function createBoard(title: string, image: string) {
     const user = await getCurrentUser();
     if (!user) {
         return { error: "Unauthorized" };
+    }
+
+    const [
+        imageId,
+        imageThumbUrl,
+        imageFullUrl,
+        imageLinkHTML,
+        imageUserName
+    ] = image.split("|");
+
+    if (!imageId || !imageThumbUrl || !imageFullUrl || !imageLinkHTML || !imageUserName) {
+        return { error: "Missing fields. Failed to create board." };
     }
 
     const board = await db.board.create({
         data: {
             title,
             ownerId: user.id,
+            imageId,
+            imageThumbUrl,
+            imageFullUrl,
+            imageLinkHTML,
+            imageUserName,
         },
     });
 

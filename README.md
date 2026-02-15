@@ -195,3 +195,12 @@ Events are emitted to rooms namespaced by board ID (`board:{id}`).
 *   **Decision**: Activity logs are generated transactionally or immediately after key actions.
 *   **Trade-off**: Slightly increases the latency of write operations (create/move/update) to ensure the audit trail is accurate.
 
+
+## 🚀 Deployment
+
+Since this project uses a custom server for WebSockets, it requires a persistent environment (Docker/VPS).
+
+👉 **[Read the Deployment Guide](DEPLOYMENT.md)** for instructions on deploying to **Render** (Free) or **Railway**.
+
+## 📜 License
+This project is open-source and available under the MIT License.

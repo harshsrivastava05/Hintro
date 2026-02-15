@@ -70,19 +70,30 @@ export default async function DashboardPage({
 
                     {/* Existing Boards */}
                     {boards?.map((board) => (
-                        <Link key={board.id} href={`/board/${board.id}`} className="block h-full">
-                            <GlassCard hoverEffect className="h-full flex flex-col min-h-[140px]">
-                                <CardTitle className="mb-2 text-lg">{board.title}</CardTitle>
-                                <CardContent className="p-0 mt-auto space-y-1">
-                                    <p className="text-xs text-muted-foreground">
-                                        {board.ownerId === user.id ? "You" : board.owner?.name || "Unknown"} · Created {new Date(board.createdAt).toLocaleDateString()}
-                                    </p>
-                                    {board.members && board.members.length > 0 && (
-                                        <p className="text-xs text-muted-foreground">
-                                            {board.members.length} member{board.members.length > 1 ? "s" : ""}
+                        <Link key={board.id} href={`/board/${board.id}`} className="block h-full group">
+                            <GlassCard
+                                hoverEffect
+                                className="h-full flex flex-col min-h-[140px] relative overflow-hidden"
+                            >
+                                {board.imageThumbUrl && (
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center transition-transform group-hover:scale-105"
+                                        style={{ backgroundImage: `url(${board.imageThumbUrl})` }}
+                                    />
+                                )}
+                                <div className={`relative z-10 flex flex-col h-full ${board.imageThumbUrl ? "bg-black/40 p-3 text-white rounded-lg" : ""}`}>
+                                    <CardTitle className={`mb-2 text-lg ${board.imageThumbUrl ? "text-white" : ""}`}>{board.title}</CardTitle>
+                                    <CardContent className="p-0 mt-auto space-y-1">
+                                        <p className={`text-xs ${board.imageThumbUrl ? "text-white/80" : "text-muted-foreground"}`}>
+                                            {board.ownerId === user.id ? "You" : board.owner?.name || "Unknown"} · Created {new Date(board.createdAt).toLocaleDateString()}
                                         </p>
-                                    )}
-                                </CardContent>
+                                        {board.members && board.members.length > 0 && (
+                                            <p className={`text-xs ${board.imageThumbUrl ? "text-white/80" : "text-muted-foreground"}`}>
+                                                {board.members.length} member{board.members.length > 1 ? "s" : ""}
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </div>
                             </GlassCard>
                         </Link>
                     ))}
